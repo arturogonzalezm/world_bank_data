@@ -1,6 +1,10 @@
+"""
+This module contains unit tests for the WorldBankDataDownloader class.
+"""
+
+import pytest
 import os
 import json
-import pytest
 
 from requests.models import Response
 from unittest.mock import patch
@@ -10,19 +14,12 @@ from src.world_bank_data_downloader import WorldBankDataDownloader
 
 @pytest.fixture
 def downloader():
-    """
-    This function returns an instance of WorldBankDataDownloader.
-    :return: WorldBankDataDownloader instance.
-    :rtype: WorldBankDataDownloader
-    """
     return WorldBankDataDownloader()
 
 
-def mocked_requests_get(url):
+def mocked_requests_get(url, timeout=None):
     """
     This function will serve as a mock for requests.get
-    :param url: URL to fetch data from.
-    :type url: str
     """
     response = Response()
     if 'country?format=json' in url:
@@ -62,22 +59,18 @@ def mocked_requests_get(url):
 
 
 @patch('requests.get', side_effect=mocked_requests_get)
-def test_get_country_codes(downloader):
+def test_get_country_codes(mock_get, downloader):
     """
     This function tests the get_country_codes method of WorldBankDataDownloader.
-    :param downloader: WorldBankDataDownloader instance.
-    :type downloader: WorldBankDataDownloader
     """
     country_codes = downloader.get_country_codes()
     assert country_codes == ["ABW", "USA"]
 
 
 @patch('requests.get', side_effect=mocked_requests_get)
-def test_get_indicators(downloader):
+def test_get_indicators(mock_get, downloader):
     """
     This function tests the get_indicators method of WorldBankDataDownloader.
-    :param downloader: WorldBankDataDownloader instance.
-    :type downloader: WorldBankDataDownloader
     """
     indicator_codes = downloader.get_indicators()
     assert indicator_codes == ["SP.POP.TOTL", "NY.GDP.MKTP.CD"]
@@ -87,10 +80,6 @@ def test_get_indicators(downloader):
 def test_fetch_data(mock_get, downloader):
     """
     This function tests the fetch_data method of WorldBankDataDownloader.
-    :param mock_get: Mocked requests.get function.
-    :type mock_get: MagicMock
-    :param downloader: WorldBankDataDownloader instance.
-    :type downloader: WorldBankDataDownloader
     """
     data = downloader.fetch_data("ABW", "SP.POP.TOTL")
     assert len(data) > 0
@@ -99,11 +88,9 @@ def test_fetch_data(mock_get, downloader):
 
 
 @patch('requests.get', side_effect=mocked_requests_get)
-def test_download_all_data(downloader):
+def test_download_all_data(mock_get, downloader):
     """
     This function tests the download_all_data method of WorldBankDataDownloader.
-    :param downloader: WorldBankDataDownloader instance.
-    :type downloader: WorldBankDataDownloader
     """
     all_data = downloader.download_all_data()
     assert len(all_data) > 0
@@ -114,8 +101,6 @@ def test_download_all_data(downloader):
 def test_save_data_to_file(downloader):
     """
     This function tests the save_data_to_file method of WorldBankDataDownloader.
-    :param downloader: WorldBankDataDownloader instance.
-    :type downloader: WorldBankDataDownloader
     """
     data = {("AUS", "SP.POP.TOTL"): [
         {"country": {"id": "AUS"}, "indicator": {"id": "SP.POP.TOTL"}, "value": "106314", "decimal": "0",
@@ -124,7 +109,7 @@ def test_save_data_to_file(downloader):
     downloader.save_data_to_file(data, filename)
     assert os.path.exists(filename)
 
-    with open(filename, 'r') as f:
+    with open(filename, 'r', encoding='utf-8') as f:
         loaded_data = json.load(f)
     assert loaded_data == {"('AUS', 'SP.POP.TOTL')": [
         {"country": {"id": "AUS"}, "indicator": {"id": "SP.POP.TOTL"}, "value": "106314", "decimal": "0",
@@ -137,8 +122,6 @@ def test_save_data_to_file(downloader):
 def test_load_data_from_file(downloader):
     """
     This function tests the load_data_from_file method of WorldBankDataDownloader.
-    :param downloader: WorldBankDataDownloader instance.
-    :type downloader: WorldBankDataDownloader
     """
     data = {("AUS", "SP.POP.TOTL"): [
         {"country": {"id": "AUS"}, "indicator": {"id": "SP.POP.TOTL"}, "value": "106314", "decimal": "0",
