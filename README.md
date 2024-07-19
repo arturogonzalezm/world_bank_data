@@ -12,7 +12,7 @@ Follow these steps to set up your development environment:
 
 1. **Clone the repository**
    ```
-   git clone https://github.com/your-username/world-bank-data-downloader.git
+   git clone https://github.com/arturogonzalezm/world_bank_data.git
    cd world-bank-data-downloader
    ```
 
@@ -40,9 +40,11 @@ Follow these steps to set up your development environment:
 
    If you don't have a `requirements.txt` file, you can create one with the following content:
    ```
-   requests
-   tenacity
-   pytest
+    requests==2.32.3
+    pytest==8.2.2
+    coverage==7.6.0
+    pytest-cov==5.0.0
+    tenacity==8.5.0
    ```
    Then run the install command above.
 
@@ -81,7 +83,7 @@ Here's a basic example of how to use the `WorldBankDataDownloader`:
 ```python
 downloader = WorldBankDataDownloader()
 all_data = downloader.download_all_data()
-downloader.save_data_to_file(all_data, 'world_bank_data.json')
+downloader.save_data_to_file(all_data, 'data/world_bank_data.json')
 ```
 
 ## Unit Tests
