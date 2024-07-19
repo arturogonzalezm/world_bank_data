@@ -1,11 +1,13 @@
 """
-This module contains the WorldBankDataDownloader class that can be used to download data from the World Bank API.
+This module contains a class for downloading data from the World Bank API.
 """
 
 import os
 import time
 import json
+import logging
 import requests
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 
 class WorldBankDataDownloader:
@@ -18,35 +20,41 @@ class WorldBankDataDownloader:
         self.base_url = 'http://api.worldbank.org/v2'
         self.country_codes = self.get_country_codes()
         self.indicator_codes = self.get_indicators()
+        logging.basicConfig(level=logging.INFO)
 
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     def get_country_codes(self):
         """
         Get the list of all country codes.
         :return: List of country codes.
         """
         url = f'{self.base_url}/country?format=json&per_page=300'
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200:
+        try:
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
             countries = response.json()[1]
-            country_codes = [country['id'] for country in countries]
-            return country_codes
-        print("Failed to fetch country codes")
-        return []
+            return [country['id'] for country in countries]
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Error fetching country codes: {e}")
+            return []
 
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     def get_indicators(self):
         """
         Get the list of all indicators.
         :return: List of indicator codes.
         """
         url = f'{self.base_url}/indicator?format=json&per_page=1000'
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200:
+        try:
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
             indicators = response.json()[1]
-            indicator_codes = [indicator['id'] for indicator in indicators]
-            return indicator_codes
-        print("Failed to fetch indicators")
-        return []
+            return [indicator['id'] for indicator in indicators]
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Error fetching indicators: {e}")
+            return []
 
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     def fetch_data(self, country_code, indicator_code):
         """
         Fetch data for a given country code and indicator.
@@ -61,18 +69,19 @@ class WorldBankDataDownloader:
                 f'{self.base_url}/country/{country_code}/indicator/{indicator_code}'
                 f'?format=json&per_page=1000&page={page}'
             )
-            response = requests.get(url, timeout=10)
-            if response.status_code == 200:
+            try:
+                response = requests.get(url, timeout=30)
+                response.raise_for_status()
                 data = response.json()
-                if len(data) < 2 or not data[1]:  # Check if data is not empty and has the expected structure
+                if len(data) < 2 or not data[1]:
                     break
                 all_pages_data.extend(data[1])
                 if data[0]['page'] >= data[0]['pages']:
                     break
                 page += 1
                 time.sleep(1)  # Be polite with the API
-            else:
-                print(f"Failed to fetch data for country {country_code} and indicator {indicator_code} on page {page}")
+            except requests.exceptions.RequestException as e:
+                logging.error(f"Error fetching data for country {country_code} and indicator {indicator_code}: {e}")
                 break
         return all_pages_data
 
@@ -82,30 +91,36 @@ class WorldBankDataDownloader:
         :return: A dictionary containing the data for all country codes and indicator codes.
         """
         all_data = {}
+        total_requests = len(self.country_codes) * len(self.indicator_codes)
+        completed_requests = 0
+
         for country_code in self.country_codes:
             for indicator_code in self.indicator_codes:
-                print(f"Fetching data for country {country_code} and indicator {indicator_code}")
+                completed_requests += 1
+                progress = (completed_requests / total_requests) * 100
+                logging.info(
+                    f"Progress: {progress:.2f}% - Fetching data for country {country_code} and indicator {indicator_code}")
+
                 data = self.fetch_data(country_code, indicator_code)
                 if data:
                     all_data[(country_code, indicator_code)] = data
+
+                time.sleep(0.5)  # Add a 0.5-second delay between requests to avoid rate limiting
+
         return all_data
 
     @staticmethod
-    def save_data_to_file(data, filename='data/raw/world_bank_data.json'):
+    def save_data_to_file(data, filename='../data/raw/world_bank_data.json'):
         """
         Save the data to a JSON file.
         :param data: The data to save.
         :param filename: The filename to save the data to.
         """
-        # Ensure the directory exists
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-
-        # Convert the dictionary keys to strings
         serializable_data = {str(key): value for key, value in data.items()}
-
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(serializable_data, f, ensure_ascii=False, indent=4)
-        print(f"Data saved to {filename}")
+        logging.info(f"Data saved to {filename}")
 
     @staticmethod
     def load_data_from_file(filename='../data/raw/world_bank_data.json'):
@@ -116,7 +131,5 @@ class WorldBankDataDownloader:
         """
         with open(filename, 'r', encoding='utf-8') as f:
             data = json.load(f)
-
-        # Convert the keys back to tuples
         deserialized_data = {eval(key): value for key, value in data.items()}
         return deserialized_data

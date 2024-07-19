@@ -6,7 +6,7 @@ from src.world_bank_data_downloader import WorldBankDataDownloader
 
 def main():
     """
-    Main function to run the WorldBankDataDownloader.
+    Main function to download all data from the World Bank API.
     :return: None
     :rtype: None
     """
