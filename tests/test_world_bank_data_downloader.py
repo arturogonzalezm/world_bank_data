@@ -62,11 +62,9 @@ def mocked_requests_get(url):
 
 
 @patch('requests.get', side_effect=mocked_requests_get)
-def test_get_country_codes(mock_get, downloader):
+def test_get_country_codes(downloader):
     """
     This function tests the get_country_codes method of WorldBankDataDownloader.
-    :param mock_get: Mocked requests.get function.
-    :type mock_get: MagicMock
     :param downloader: WorldBankDataDownloader instance.
     :type downloader: WorldBankDataDownloader
     """
@@ -75,11 +73,9 @@ def test_get_country_codes(mock_get, downloader):
 
 
 @patch('requests.get', side_effect=mocked_requests_get)
-def test_get_indicators(mock_get, downloader):
+def test_get_indicators(downloader):
     """
     This function tests the get_indicators method of WorldBankDataDownloader.
-    :param mock_get: Mocked requests.get function.
-    :type mock_get: MagicMock
     :param downloader: WorldBankDataDownloader instance.
     :type downloader: WorldBankDataDownloader
     """
@@ -103,11 +99,9 @@ def test_fetch_data(mock_get, downloader):
 
 
 @patch('requests.get', side_effect=mocked_requests_get)
-def test_download_all_data(mock_get, downloader):
+def test_download_all_data(downloader):
     """
     This function tests the download_all_data method of WorldBankDataDownloader.
-    :param mock_get: Mocked requests.get function.
-    :type mock_get: MagicMock
     :param downloader: WorldBankDataDownloader instance.
     :type downloader: WorldBankDataDownloader
     """
