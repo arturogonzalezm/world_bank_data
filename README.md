@@ -4,7 +4,47 @@
 
 # World Bank Data Downloader
 
-This project provides a Python class `WorldBankDataDownloader` for downloading data from the World Bank API. It includes functionality to fetch country codes, indicator codes, and data for specific country-indicator pairs.
+This project provides a Python 3.12 class `WorldBankDataDownloader` for downloading data from the World Bank API. It includes functionality to fetch country codes, indicator codes, and data for specific country-indicator pairs.
+
+## Setup
+
+Follow these steps to set up your development environment:
+
+1. **Clone the repository**
+   ```
+   git clone https://github.com/your-username/world-bank-data-downloader.git
+   cd world-bank-data-downloader
+   ```
+
+2. **Create a virtual environment**
+   - For Unix or MacOS:
+     ```
+     python3 -m venv .venv
+     source .venv/bin/activate
+     ```
+   - For Windows:
+     ```
+     python -m venv .venv
+     .venv\Scripts\activate
+     ```
+
+3. **Upgrade pip**
+   ```
+   pip install --upgrade pip
+   ```
+
+4. **Install dependencies**
+   ```
+   pip install -r requirements.txt
+   ```
+
+   If you don't have a `requirements.txt` file, you can create one with the following content:
+   ```
+   requests
+   tenacity
+   pytest
+   ```
+   Then run the install command above.
 
 ## Class Structure
 
@@ -82,7 +122,7 @@ The unit tests cover:
 
 To run the tests:
 
-1. Ensure you have pytest installed: `pip install pytest`
+1. Ensure you're in your virtual environment
 2. Run the command: `pytest test_world_bank_data_downloader.py`
 
 ## Dependencies
