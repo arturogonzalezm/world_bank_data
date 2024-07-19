@@ -76,6 +76,52 @@ classDiagram
 4. **Error Handling**: Robust error handling for API requests and data processing.
 5. **Data Persistence**: Methods to save and load data to/from JSON files.
 
+## Sequence Diagram
+
+The following sequence diagram illustrates the main interactions of the `WorldBankDataDownloader` class:
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant WBD as WorldBankDataDownloader
+    participant API as World Bank API
+    participant FileSystem
+
+    Client->>WBD: create()
+    WBD->>API: Fetch country codes
+    WBD->>API: Fetch indicator codes
+    Client->>WBD: download_all_data()
+    loop for each country and indicator
+        WBD->>API: Fetch data
+    end
+    Client->>WBD: save_data_to_file(data)
+    WBD->>FileSystem: Write JSON
+    Client->>WBD: load_data_from_file()
+    FileSystem-->>WBD: Read JSON
+    WBD-->>Client: Return data
+```
+
+## Flowchart
+
+This flowchart outlines the main process of the `WorldBankDataDownloader`:
+
+```mermaid
+graph TD
+    A[Start] --> B[Initialize WorldBankDataDownloader]
+    B --> C[Fetch country codes]
+    C --> D[Fetch indicator codes]
+    D --> E[Download all data]
+    E --> F{For each country and indicator}
+    F --> G[Fetch data]
+    G --> H{More pairs?}
+    H -->|Yes| F
+    H -->|No| I[Save data to file]
+    I --> J[End]
+
+    K[Load data from file] --> L[Read and deserialize JSON]
+    L --> M[Return data]
+```
+
 ## Usage
 
 Here's a basic example of how to use the `WorldBankDataDownloader`:
@@ -129,9 +175,11 @@ To run the tests:
 
 ## Dependencies
 
-- requests
-- tenacity
+- requests (for making HTTP requests)
+- tenacity (for retry logic)
 - pytest (for running tests)
+- pytest-cov (for test coverage)
+- coverage (for test coverage)
 
 ## Notes
 
