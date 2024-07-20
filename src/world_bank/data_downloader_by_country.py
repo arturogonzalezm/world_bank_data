@@ -5,7 +5,7 @@ from src.utils.singleton_logger import SingletonLogger
 from src.world_bank.data_downloader import WorldBankDataDownloader
 
 
-def main():
+def extract():
     """
     Main function to download data from the World Bank API.
     :return: None
@@ -39,4 +39,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    extract()
