@@ -1,4 +1,3 @@
-
 """
 SingletonLogger class is a singleton class that provides a single instance of logger object.
 """
@@ -36,6 +35,5 @@ class SingletonLogger:
 
     def get_logger(self):
         return self._logger
-
 
 # logger = SingletonLogger().get_logger()

@@ -4,7 +4,8 @@ This file contains tests for the SingletonLogger class. The SingletonLogger clas
 import pytest
 import logging
 import threading
-from unittest.mock import patch, MagicMock
+
+from unittest.mock import patch
 
 from src.utils.singleton_logger import SingletonLogger
 
