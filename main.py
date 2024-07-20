@@ -1,8 +1,8 @@
 """
 This is the main file to run the WorldBankDataDownloader.
 """
-from src.utilts.singleton_logger import SingletonLogger
-from src.utilts.world_bank_data_downloader import WorldBankDataDownloader
+from src.utils.singleton_logger import SingletonLogger
+from src.world_bank.data_downloader import WorldBankDataDownloader
 
 
 def main():

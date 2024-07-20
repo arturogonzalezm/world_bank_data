@@ -10,7 +10,7 @@ import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from src.utilts.singleton_logger import SingletonLogger
+from src.utils.singleton_logger import SingletonLogger
 
 
 class WorldBankDataDownloader:

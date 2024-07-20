@@ -8,7 +8,7 @@ import pytest
 from unittest.mock import patch, MagicMock, call
 from concurrent.futures import Future
 
-from src.utilts.world_bank_data_downloader import WorldBankDataDownloader
+from src.world_bank.data_downloader import WorldBankDataDownloader
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -54,7 +54,7 @@ def test_init(downloader):
     assert isinstance(downloader.indicator_codes, list)
 
 
-@patch('src.utilts.world_bank_data_downloader.requests.get')
+@patch('src.utils.world_bank_data_downloader.requests.get')
 def test_get_country_codes(mock_get, downloader, mock_response):
     """
     Test the get_country_codes method of the WorldBankDataDownloader class.
@@ -73,7 +73,7 @@ def test_get_country_codes(mock_get, downloader, mock_response):
     )
 
 
-@patch('src.utilts.world_bank_data_downloader.requests.get')
+@patch('src.utils.world_bank_data_downloader.requests.get')
 def test_get_indicators(mock_get, downloader, mock_response):
     """
     Test the get_indicators method of the WorldBankDataDownloader class.
@@ -99,7 +99,7 @@ def test_get_indicators(mock_get, downloader, mock_response):
     )
 
 
-@patch('src.utilts.world_bank_data_downloader.requests.get')
+@patch('src.utils.world_bank_data_downloader.requests.get')
 def test_fetch_data(mock_get, downloader):
     """
     Test the fetch_data method of the WorldBankDataDownloader class.
@@ -128,7 +128,7 @@ def test_fetch_data(mock_get, downloader):
     assert mock_get.call_count == 2
 
 
-@patch('src.utilts.world_bank_data_downloader.ThreadPoolExecutor')
+@patch('src.utils.world_bank_data_downloader.ThreadPoolExecutor')
 def test_fetch_data_concurrently(mock_executor, downloader):
     """
     Test the fetch_data_concurrently method of the WorldBankDataDownloader class.
