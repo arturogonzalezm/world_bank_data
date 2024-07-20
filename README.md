@@ -171,7 +171,7 @@ The unit tests cover:
 To run the tests:
 
 1. Ensure you're in your virtual environment
-2. Run the command: `pytest test_world_bank_data_downloader.py`
+2. Run the command: `pytest test_data_downloader.py`
 
 ## Dependencies
 

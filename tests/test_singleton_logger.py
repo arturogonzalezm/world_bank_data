@@ -3,9 +3,9 @@ Test the SingletonLogger class.
 """
 import logging
 import threading
+import pytest
 import unittest.mock
 
-import pytest
 
 from src.utils.singleton_logger import SingletonLogger
 

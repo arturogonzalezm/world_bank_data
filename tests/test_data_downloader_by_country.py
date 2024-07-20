@@ -2,6 +2,7 @@
 This file contains the unit tests for the extract function in the data_downloader_by_country.py file.
 """
 import pytest
+
 from unittest.mock import patch, MagicMock
 
 from src.world_bank.data_downloader_by_country import extract  # Update this import to match your actual file structure
