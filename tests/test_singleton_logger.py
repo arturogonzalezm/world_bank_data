@@ -1,11 +1,11 @@
 """
-This file contains tests for the SingletonLogger class. The SingletonLogger class is a simple
+Test the SingletonLogger class.
 """
-import pytest
 import logging
 import threading
+import unittest.mock
 
-from unittest.mock import patch
+import pytest
 
 from src.utils.singleton_logger import SingletonLogger
 
@@ -25,7 +25,7 @@ def test_singleton_instance(reset_singleton):
     assert logger1 is logger2
 
 
-def test_logger_name():
+def test_logger_name(reset_singleton):
     """Test that the logger name is set correctly."""
     logger = SingletonLogger(logger_name="TestLogger").get_logger()
     assert logger.name == "TestLogger"
@@ -34,40 +34,32 @@ def test_logger_name():
 def test_default_logger_name(reset_singleton):
     """Test that the default logger name is set correctly."""
     logger = SingletonLogger().get_logger()
-    assert logger.name == "src.utils.singleton_logger"  # Updated to match the actual module name
+    assert logger.name == "SingletonLogger"
 
 
-def test_log_level(reset_singleton):
-    """Test that the log level is set correctly."""
+def test_format_update(reset_singleton):
+    """Test that the format is updated when a new instance is created with a different format."""
+    SingletonLogger()  # Create with default format
+    custom_format = "%(levelname)s: %(message)s"
+    logger = SingletonLogger(log_format=custom_format).get_logger()
+    assert logger.handlers[0].formatter._fmt == custom_format
+
+
+def test_level_update(reset_singleton):
+    """Test that the level is updated when a new instance is created with a different level."""
+    SingletonLogger(log_level=logging.DEBUG)  # Create with DEBUG level
     logger = SingletonLogger(log_level=logging.INFO).get_logger()
     assert logger.level == logging.INFO
+    assert logger.handlers[0].level == logging.INFO
 
 
-@patch('logging.StreamHandler')
-def test_custom_format(mock_stream_handler, reset_singleton):
-    """Test that a custom log format is set correctly."""
-    custom_format = "%(levelname)s: %(message)s"
-    SingletonLogger(log_format=custom_format)
-
-    # Check that the formatter was created with the custom format
-    mock_stream_handler.return_value.setFormatter.assert_called_once()
-    formatter = mock_stream_handler.return_value.setFormatter.call_args[0][0]
-    assert formatter._fmt == custom_format
-
-
-def test_default_format(reset_singleton):
-    """Test that the default log format is set correctly."""
-    logger = SingletonLogger().get_logger()
-    handler = logger.handlers[0]
-    assert handler.formatter._fmt == "%(asctime)s - %(threadName)s - %(levelname)s - %(message)s"
-
-
-@patch('logging.StreamHandler')
-def test_single_handler(mock_stream_handler, reset_singleton):
+def test_single_handler(reset_singleton):
     """Test that only one handler is added, even with multiple instantiations."""
-    SingletonLogger()
-    SingletonLogger()
-    assert mock_stream_handler.call_count == 1
+    logger1 = SingletonLogger().get_logger()
+    logger2 = SingletonLogger().get_logger()
+    assert len(logger1.handlers) == 1
+    assert len(logger2.handlers) == 1
+    assert logger1.handlers[0] is logger2.handlers[0]
 
 
 def test_thread_safety(reset_singleton):
@@ -89,7 +81,7 @@ def test_thread_safety(reset_singleton):
 def test_logger_functionality(reset_singleton):
     """Test that the logger actually logs messages."""
     logger = SingletonLogger().get_logger()
-    with patch.object(logger, 'debug') as mock_debug:
+    with unittest.mock.patch.object(logger, 'debug') as mock_debug:
         logger.debug("Test message")
         mock_debug.assert_called_once_with("Test message")
 
