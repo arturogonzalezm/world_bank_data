@@ -5,8 +5,6 @@ import logging
 import threading
 import pytest
 import unittest.mock
-
-
 from src.utils.singleton_logger import SingletonLogger
 
 
