@@ -129,7 +129,7 @@ Here's a basic example of how to use the `WorldBankDataDownloader`:
 ```python
 downloader = WorldBankDataDownloader()
 all_data = downloader.download_all_data()
-downloader.save_data_to_file(all_data, 'data/world_bank_data.json')
+downloader.save_data_to_file(all_data, 'data/world_bank_data_optimised.json')
 ```
 
 ## Unit Tests

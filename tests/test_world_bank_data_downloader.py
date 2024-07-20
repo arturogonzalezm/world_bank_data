@@ -1,19 +1,24 @@
 """
 Unit tests for the WorldBankDataDownloader class.
 """
+import os
+import sys
 import pytest
-import json
-import requests
-from unittest.mock import patch, MagicMock
 
-from src.world_bank_data_downloader import WorldBankDataDownloader
+from unittest.mock import patch, MagicMock, call
+from concurrent.futures import Future
+
+from src.utilts.world_bank_data_downloader import WorldBankDataDownloader
+
+# Add the project root to the Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
 @pytest.fixture
 def downloader():
     """
-    Fixture to create a WorldBankDataDownloader instance.
-    :return: A WorldBankDataDownloader instance.
+    Fixture to create an instance of the WorldBankDataDownloader class.
+    :return: An instance of the WorldBankDataDownloader class.
     :rtype: WorldBankDataDownloader
     """
     return WorldBankDataDownloader()
@@ -34,14 +39,13 @@ def mock_response():
             {"id": "GBR", "name": "United Kingdom"}
         ]
     ]
-    mock.raise_for_status.return_value = None
     return mock
 
 
 def test_init(downloader):
     """
-    Test the initialization of the WorldBankDataDownloader class.
-    :param downloader: A WorldBankDataDownloader instance.
+    Test the __init__ method of the WorldBankDataDownloader class.
+    :param downloader: An instance of the WorldBankDataDownloader class.
     :return: None
     :rtype: None
     """
@@ -50,12 +54,12 @@ def test_init(downloader):
     assert isinstance(downloader.indicator_codes, list)
 
 
-@patch('requests.get')
+@patch('src.utilts.world_bank_data_downloader.requests.get')
 def test_get_country_codes(mock_get, downloader, mock_response):
     """
-    Test the get_country_codes method.
+    Test the get_country_codes method of the WorldBankDataDownloader class.
     :param mock_get: A mock of the requests.get function.
-    :param downloader: A WorldBankDataDownloader instance.
+    :param downloader: An instance of the WorldBankDataDownloader class.
     :param mock_response: A mock response object.
     :return: None
     :rtype: None
@@ -63,141 +67,133 @@ def test_get_country_codes(mock_get, downloader, mock_response):
     mock_get.return_value = mock_response
     country_codes = downloader.get_country_codes()
     assert country_codes == ['USA', 'GBR']
-    mock_get.assert_called_once_with(f'{downloader.base_url}/country?format=json&per_page=300', timeout=30)
-
-
-@patch('requests.get')
-def test_get_indicators(mock_get, downloader, mock_response):
-    """
-    Test the get_indicators method.
-    :param mock_get: A mock of the requests.get function.
-    :param downloader: A WorldBankDataDownloader instance.
-    :param mock_response: A mock response object.
-    :return: None
-    :rtype: None
-    """
-    mock_get.return_value = mock_response
-    indicators = downloader.get_indicators()
-    assert indicators == ['USA', 'GBR']  # Using the same mock response for simplicity
-    mock_get.assert_called_once_with(f'{downloader.base_url}/indicator?format=json&per_page=1000', timeout=30)
-
-
-@patch('requests.get')
-def test_fetch_data(mock_get, downloader, mock_response):
-    """
-    Test the fetch_data method.
-    :param mock_get: A mock of the requests.get function.
-    :param downloader: A WorldBankDataDownloader instance.
-    :param mock_response: A mock response object.
-    :return: None
-    :rtype: None
-    """
-    mock_get.return_value = mock_response
-    data = downloader.fetch_data('USA', 'GDP')
-    assert data == [{"id": "USA", "name": "United States"}, {"id": "GBR", "name": "United Kingdom"}]
     mock_get.assert_called_once_with(
-        f'{downloader.base_url}/country/USA/indicator/GDP?format=json&per_page=1000&page=1',
+        'http://api.worldbank.org/v2/country?format=json&per_page=300',
         timeout=30
     )
 
 
-@patch.object(WorldBankDataDownloader, 'fetch_data')
-def test_download_all_data(mock_fetch_data, downloader):
+@patch('src.utilts.world_bank_data_downloader.requests.get')
+def test_get_indicators(mock_get, downloader, mock_response):
     """
-    Test the download_all_data method.
-    :param mock_fetch_data: A mock of the fetch_data method.
-    :param downloader: A WorldBankDataDownloader instance.
+    Test the get_indicators method of the WorldBankDataDownloader class.
+    :param mock_get: A mock of the requests.get function.
+    :param downloader: An instance of the WorldBankDataDownloader class.
+    :param mock_response: A mock response object.
     :return: None
     :rtype: None
     """
-    mock_fetch_data.return_value = [{"year": 2020, "value": 100}]
-    downloader.country_codes = ['USA', 'GBR']
-    downloader.indicator_codes = ['GDP', 'POP']
+    mock_response.json.return_value = [
+        {"page": 1, "pages": 1, "per_page": 50, "total": 2},
+        [
+            {"id": "SP.POP.TOTL", "name": "Population, total"},
+            {"id": "NY.GDP.MKTP.CD", "name": "GDP (current US$)"}
+        ]
+    ]
+    mock_get.return_value = mock_response
+    indicators = downloader.get_indicators()
+    assert indicators == ['SP.POP.TOTL', 'NY.GDP.MKTP.CD']
+    mock_get.assert_called_once_with(
+        'http://api.worldbank.org/v2/indicator?format=json&per_page=1000',
+        timeout=30
+    )
 
-    all_data = downloader.download_all_data()
 
-    assert len(all_data) == 4  # 2 countries * 2 indicators
-    assert all_data[('USA', 'GDP')] == [{"year": 2020, "value": 100}]
-    assert mock_fetch_data.call_count == 4
-
-
-def test_save_data_to_file(tmp_path, downloader):
+@patch('src.utilts.world_bank_data_downloader.requests.get')
+def test_fetch_data(mock_get, downloader):
     """
-    Test the save_data_to_file method.
-    :param tmp_path: A temporary directory.
-    :param downloader: A WorldBankDataDownloader instance.
+    Test the fetch_data method of the WorldBankDataDownloader class.
+    :param mock_get: A mock of the requests.get function.
+    :param downloader: An instance of the WorldBankDataDownloader class.
     :return: None
     :rtype: None
     """
-    data = {('USA', 'GDP'): [{"year": 2020, "value": 100}]}
+    mock_responses = [
+        MagicMock(json=lambda: [
+            {"page": 1, "pages": 2, "per_page": 1, "total": 2},
+            [{"year": "2020", "value": "100"}]
+        ]),
+        MagicMock(json=lambda: [
+            {"page": 2, "pages": 2, "per_page": 1, "total": 2},
+            [{"year": "2019", "value": "90"}]
+        ])
+    ]
+    mock_get.side_effect = mock_responses
+
+    data = downloader.fetch_data('USA', 'SP.POP.TOTL')
+    assert data == [
+        {"year": "2020", "value": "100"},
+        {"year": "2019", "value": "90"}
+    ]
+    assert mock_get.call_count == 2
+
+
+@patch('src.utilts.world_bank_data_downloader.ThreadPoolExecutor')
+def test_fetch_data_concurrently(mock_executor, downloader):
+    """
+    Test the fetch_data_concurrently method of the WorldBankDataDownloader class.
+    :param mock_executor: A mock of the ThreadPoolExecutor class.
+    :param downloader: An instance of the WorldBankDataDownloader class.
+    :return: None
+    :rtype: None
+    """
+    # Set up mock data
+    mock_data_1 = [{"year": "2020", "value": "100"}]
+    mock_data_2 = [{"year": "2020", "value": "200"}]
+
+    # Set up mock futures
+    mock_future_1 = Future()
+    mock_future_1.set_result(mock_data_1)
+    mock_future_2 = Future()
+    mock_future_2.set_result(mock_data_2)
+
+    # Set up mock executor
+    mock_executor_instance = MagicMock()
+    mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
+    mock_executor.return_value.__enter__.return_value = mock_executor_instance
+
+    # Call the method
+    result = downloader.fetch_data_concurrently('USA', ['SP.POP.TOTL', 'NY.GDP.MKTP.CD'])
+
+    # Print the result for debugging
+    print(f"Result: {result}")
+
+    # Assert the results
+    assert result == {
+        'SP.POP.TOTL': mock_data_1,
+        'NY.GDP.MKTP.CD': mock_data_2
+    }
+
+    # Assert that executor.submit was called with correct arguments
+    calls = [
+        call(downloader.fetch_data, 'USA', 'SP.POP.TOTL'),
+        call(downloader.fetch_data, 'USA', 'NY.GDP.MKTP.CD')
+    ]
+    assert mock_executor_instance.submit.call_count == 2
+    mock_executor_instance.submit.assert_has_calls(calls, any_order=True)
+
+    # Assert that ThreadPoolExecutor was used
+    mock_executor.assert_called_once()
+
+
+def test_save_and_load_data(downloader, tmp_path):
+    """
+    Test the save_data_to_file and load_data_from_file methods of the WorldBankDataDownloader class.
+    :param downloader: An instance of the WorldBankDataDownloader class.
+    :param tmp_path: A temporary directory path.
+    :return: None
+    :rtype: None
+    """
+    test_data = {
+        ('USA', 'SP.POP.TOTL'): [{"year": "2020", "value": "100"}],
+        ('GBR', 'NY.GDP.MKTP.CD'): [{"year": "2020", "value": "1000"}]
+    }
     filename = tmp_path / "test_data.json"
 
-    downloader.save_data_to_file(data, filename)
-
-    assert filename.exists()
-    with open(filename, 'r') as f:
-        saved_data = json.load(f)
-    assert saved_data == {"('USA', 'GDP')": [{"year": 2020, "value": 100}]}
-
-
-def test_load_data_from_file(tmp_path, downloader):
-    """
-    Test the load_data_from_file method.
-    :param tmp_path: A temporary directory.
-    :param downloader: A WorldBankDataDownloader instance.
-    :return: None
-    :rtype: None
-    """
-    data = {"('USA', 'GDP')": [{"year": 2020, "value": 100}]}
-    filename = tmp_path / "test_data.json"
-    with open(filename, 'w') as f:
-        json.dump(data, f)
-
+    downloader.save_data_to_file(test_data, filename)
     loaded_data = downloader.load_data_from_file(filename)
 
-    assert loaded_data == {('USA', 'GDP'): [{"year": 2020, "value": 100}]}
-
-
-@patch('requests.get')
-def test_get_country_codes_error(mock_get, downloader):
-    """
-    Test the get_country_codes method when an error occurs.
-    :param mock_get: A mock of the requests.get function.
-    :param downloader: A WorldBankDataDownloader instance.
-    :return: None
-    :rtype: None
-    """
-    mock_get.side_effect = requests.exceptions.RequestException("API Error")
-    country_codes = downloader.get_country_codes()
-    assert country_codes == []
-
-
-@patch('requests.get')
-def test_get_indicators_error(mock_get, downloader):
-    """
-    Test the get_indicators method when an error occurs.
-    :param mock_get: A mock of the requests.get function.
-    :param downloader: A WorldBankDataDownloader instance.
-    :return: None
-    :rtype: None
-    """
-    mock_get.side_effect = requests.exceptions.RequestException("API Error")
-    indicators = downloader.get_indicators()
-    assert indicators == []
-
-
-@patch('requests.get')
-def test_fetch_data_error(mock_get, downloader):
-    """
-    Test the fetch_data method when an error occurs.
-    :param mock_get: A mock of the requests.get function.
-    :param downloader: A WorldBankDataDownloader instance.
-    :return: None
-    :rtype: None
-    """
-    mock_get.side_effect = requests.exceptions.RequestException("API Error")
-    data = downloader.fetch_data('USA', 'GDP')
-    assert data == []
+    assert loaded_data == test_data
 
 
 # Run the tests

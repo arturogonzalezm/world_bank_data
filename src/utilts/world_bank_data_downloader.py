@@ -1,14 +1,16 @@
 """
-This module contains a class for downloading data from the World Bank API.
+This module contains the WorldBankDataDownloader class, which is used to download data from the World Bank API.
 """
-
 import os
 import time
 import json
 import logging
 import requests
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from tenacity import retry, stop_after_attempt, wait_exponential
+
+from src.utilts.singleton_logger import SingletonLogger
 
 
 class WorldBankDataDownloader:
@@ -19,6 +21,7 @@ class WorldBankDataDownloader:
         Initialize the WorldBankDataDownloader with the base URL, country codes, and indicator codes.
         """
         self.base_url = 'http://api.worldbank.org/v2'
+        self.logger = SingletonLogger().get_logger()
         self.country_codes = self.get_country_codes()
         self.indicator_codes = self.get_indicators()
         logging.basicConfig(level=logging.INFO)
@@ -86,45 +89,44 @@ class WorldBankDataDownloader:
                 break
         return all_pages_data
 
-    def download_all_data(self):
+    def fetch_data_concurrently(self, country_code, indicator_codes, max_workers=10):
         """
-        Download data for all indicators and country codes.
-        :return: A dictionary containing the data for all country codes and indicator codes.
+        Fetch data concurrently for a given country code and a list of indicator codes.
+        :param country_code: The country code.
+        :param indicator_codes: The list of indicator codes.
+        :param max_workers: The maximum number of threads to use.
+        :return: A dictionary containing the data for the given country code and indicator codes.
         """
-        all_data = {}
-        total_requests = len(self.country_codes) * len(self.indicator_codes)
-        completed_requests = 0
-
-        for country_code in self.country_codes:
-            for indicator_code in self.indicator_codes:
-                completed_requests += 1
-                progress = (completed_requests / total_requests) * 100
-                logging.info(
-                    f"Progress: {progress:.2f}% - Fetching data for country {country_code} and indicator {indicator_code}")
-
-                data = self.fetch_data(country_code, indicator_code)
-                if data:
-                    all_data[(country_code, indicator_code)] = data
-
-                time.sleep(0.5)  # Add a 0.5-second delay between requests to avoid rate limiting
-
-        return all_data
+        results = {}
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_indicator = {executor.submit(self.fetch_data, country_code, indicator_code): indicator_code for
+                                   indicator_code in indicator_codes}
+            for future in as_completed(future_to_indicator):
+                indicator_code = future_to_indicator[future]
+                try:
+                    data = future.result()
+                    if data:
+                        results[indicator_code] = data
+                except Exception as e:
+                    logging.error(f"Error fetching data for indicator {indicator_code}: {e}")
+        return results
 
     @staticmethod
-    def save_data_to_file(data, filename='../data/raw/world_bank_data.json'):
+    def save_data_to_file(data, filename='../data/raw/world_bank_data_optimised.json'):
         """
         Save the data to a JSON file.
         :param data: The data to save.
         :param filename: The filename to save the data to.
         """
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-        serializable_data = {str(key): value for key, value in data.items()}
+        # Use a delimiter that is safe and won't appear in the keys
+        serializable_data = {"__DELIM__".join(key): value for key, value in data.items()}
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(serializable_data, f, ensure_ascii=False, indent=4)
         logging.info(f"Data saved to {filename}")
 
     @staticmethod
-    def load_data_from_file(filename='../data/raw/world_bank_data.json'):
+    def load_data_from_file(filename='../data/raw/world_bank_data_optimised.json'):
         """
         Load the data from a JSON file.
         :param filename: The filename to load the data from.
@@ -132,5 +134,6 @@ class WorldBankDataDownloader:
         """
         with open(filename, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        deserialized_data = {eval(key): value for key, value in data.items()}
+        # Use the same delimiter to split the keys back into tuples
+        deserialized_data = {tuple(key.split("__DELIM__")): value for key, value in data.items()}
         return deserialized_data
