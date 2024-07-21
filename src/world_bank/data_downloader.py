@@ -115,12 +115,24 @@ class WorldBankDataDownloader:
     def save_data_to_file(data, filename='../data/raw/world_bank_data_optimised.json'):
         """
         Save the data to a JSON file.
-        :param data: The data to save.
+        :param data: The data to save. Can be in either the old or new format.
         :param filename: The filename to save the data to.
         """
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-        # Use a delimiter that is safe and won't appear in the keys
-        serializable_data = {"__DELIM__".join(key): value for key, value in data.items()}
+        serializable_data = {}
+
+        # Check if the data is already in the new format
+        if isinstance(next(iter(data.values()), None), dict):
+            serializable_data = data
+        else:
+            # Convert from old format to new format
+            for indicator_code, value in data.items():
+                country_code = value[0]['country']['id'] if value else None
+                if country_code:
+                    if country_code not in serializable_data:
+                        serializable_data[country_code] = {}
+                    serializable_data[country_code][indicator_code] = value
+
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(serializable_data, f, ensure_ascii=False, indent=4)
         logging.info(f"Data saved to {filename}")
@@ -134,6 +146,6 @@ class WorldBankDataDownloader:
         """
         with open(filename, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        # Use the same delimiter to split the keys back into tuples
-        deserialized_data = {tuple(key.split("__DELIM__")): value for key, value in data.items()}
-        return deserialized_data
+
+        # The data is already in the desired format, so we can return it as is
+        return data

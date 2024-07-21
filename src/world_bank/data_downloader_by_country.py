@@ -1,6 +1,3 @@
-"""
-This script downloads data from the World Bank API for a specific country (Australia in this case) and saves it to a file.
-"""
 from src.utils.singleton_logger import SingletonLogger
 from src.world_bank.data_downloader import WorldBankDataDownloader
 
@@ -25,17 +22,19 @@ def extract():
 
     # Save the data to a file
     filename = f'../data/raw/{country_code}_world_bank_data.json'
-    downloader.save_data_to_file(australia_data, filename=filename)
+    downloader.save_data_to_file({country_code: australia_data}, filename=filename)
 
     # Load the data from the file (for verification)
     loaded_data = downloader.load_data_from_file(filename=filename)
 
     # Print the loaded data (or a subset of it)
-    for indicator, data in loaded_data.items():
-        logger.info(f"Indicator: {indicator}")
-        for entry in data:
-            logger.info(entry)
-        logger.info("\n")
+    for country, indicators in loaded_data.items():
+        logger.info(f"Country: {country}")
+        for indicator, data in indicators.items():
+            logger.info(f"  Indicator: {indicator}")
+            for entry in data[:3]:  # Print only the first 3 entries for brevity
+                logger.info(f"    {entry}")
+            logger.info("\n")
 
 
 if __name__ == '__main__':

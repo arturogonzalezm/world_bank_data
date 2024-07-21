@@ -185,15 +185,24 @@ def test_save_and_load_data(downloader, tmp_path):
     :rtype: None
     """
     test_data = {
-        ('USA', 'SP.POP.TOTL'): [{"year": "2020", "value": "100"}],
-        ('GBR', 'NY.GDP.MKTP.CD'): [{"year": "2020", "value": "1000"}]
+        'USA': {
+            'SP.POP.TOTL': [{"year": "2020", "value": "100"}]
+        },
+        'GBR': {
+            'NY.GDP.MKTP.CD': [{"year": "2020", "value": "1000"}]
+        }
     }
     filename = tmp_path / "test_data.json"
 
     downloader.save_data_to_file(test_data, filename)
     loaded_data = downloader.load_data_from_file(filename)
 
-    assert loaded_data == test_data
+    assert loaded_data == test_data, f"Loaded data {loaded_data} does not match test data {test_data}"
+
+    # Additional test to ensure the structure is correct
+    assert isinstance(loaded_data, dict), "Loaded data should be a dictionary"
+    assert all(isinstance(country_data, dict) for country_data in loaded_data.values()), "Each country's data should be a dictionary"
+    assert all(isinstance(indicator_data, list) for country_data in loaded_data.values() for indicator_data in country_data.values()), "Each indicator's data should be a list"
 
 
 # Run the tests

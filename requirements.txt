@@ -4,3 +4,4 @@ coverage==7.6.0
 pytest-cov==5.0.0
 tenacity==8.5.0
 aiohttp
+pyspark==3.5.1
